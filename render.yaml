@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: grasshopper-bot
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    healthCheckPath: /
+    envVars:
+      - key: TELEGRAM_TOKEN
+        sync: false          # set manually in Render dashboard
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ALLOWED_USERS
+        sync: false
+      - key: DB_PATH
+        value: /data/shopping.db
+    disk:
+      name: botdata
+      mountPath: /data
+      sizeGB: 1

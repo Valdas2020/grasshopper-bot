@@ -1,0 +1,3 @@
+aiogram==3.13.1
+openai==1.57.4
+python-dotenv==1.0.1
