@@ -36,7 +36,15 @@ logger = logging.getLogger(__name__)
 # ── Config ─────────────────────────────────────────────────────────────────────
 
 TELEGRAM_TOKEN: str = os.environ["TELEGRAM_TOKEN"]
+
+# Whisper transcription — direct OpenAI API
 OPENAI_API_KEY: str = os.environ["OPENAI_API_KEY"]
+
+# GPT-4o-mini NLU — RouteLLM proxy (cheaper)
+ROUTELLM_API_KEY: str = os.environ["ROUTELLM_API_KEY"]
+ROUTELLM_BASE_URL: str = os.getenv("ROUTELLM_BASE_URL", "https://routellm.abacus.ai/v1/")
+ROUTELLM_MODEL: str = os.getenv("ROUTELLM_MODEL", "gpt-4o-mini")
+
 ALLOWED_USERS: list[int] = [
     int(uid.strip())
     for uid in os.environ["ALLOWED_USERS"].split(",")
@@ -63,7 +71,11 @@ dp = Dispatcher(storage=MemoryStorage())
 router = Router()
 dp.include_router(router)
 
-openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+# Whisper: direct OpenAI (audio transcriptions endpoint)
+whisper_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+
+# GPT-4o-mini NLU: RouteLLM proxy
+routellm_client = AsyncOpenAI(api_key=ROUTELLM_API_KEY, base_url=ROUTELLM_BASE_URL)
 
 # ── Database ───────────────────────────────────────────────────────────────────
 
@@ -176,10 +188,10 @@ def format_shopping_list(rows: list[tuple]) -> str:
 
 
 async def transcribe_voice(file_bytes: bytes) -> str:
-    """Transcribe OGG audio bytes using OpenAI Whisper."""
+    """Transcribe OGG audio bytes using OpenAI Whisper (direct OpenAI API)."""
     buf = io.BytesIO(file_bytes)
     buf.name = "voice.ogg"
-    response = await openai_client.audio.transcriptions.create(
+    response = await whisper_client.audio.transcriptions.create(
         model="whisper-1",
         file=buf,
         language="ru",
@@ -208,9 +220,9 @@ NLU_SYSTEM_PROMPT = """\
 
 
 async def parse_nlu(text: str) -> dict:
-    """Extract shopping intent from text using GPT-4o-mini."""
-    response = await openai_client.chat.completions.create(
-        model="gpt-4o-mini",
+    """Extract shopping intent from text using GPT-4o-mini via RouteLLM."""
+    response = await routellm_client.chat.completions.create(
+        model=ROUTELLM_MODEL,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": NLU_SYSTEM_PROMPT},

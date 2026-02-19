@@ -8,9 +8,15 @@ services:
     healthCheckPath: /
     envVars:
       - key: TELEGRAM_TOKEN
-        sync: false          # set manually in Render dashboard
+        sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: ROUTELLM_API_KEY
+        sync: false
+      - key: ROUTELLM_BASE_URL
+        value: https://routellm.abacus.ai/v1/
+      - key: ROUTELLM_MODEL
+        value: gpt-4o-mini
       - key: ALLOWED_USERS
         sync: false
       - key: DB_PATH
